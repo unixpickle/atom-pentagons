@@ -26,13 +26,12 @@ registerEditor = (editor) ->
   editors.push editor
   states.push randomPentagonState()
   canvases.push null
-  fixBackgroundColors editor
+  registerBackgroundFixer editor
 
 redraw = ->
   for editor, i in editors
     view = atom.views.getView editor
     unless view.style.display is 'none'
-      fixBackgroundColors editor
       unless canvases[i]?
         c = document.createElement 'canvas'
         canvases[i] = c
@@ -51,10 +50,22 @@ redraw = ->
         canvases[i].parentElement.removeChild canvases[i]
         canvases[i] = null
 
+registerBackgroundFixer = (editor) ->
+  fixBackgroundColors editor
+  view = atom.views.getView(editor).shadowRoot
+  container = view.querySelector '.lines > div'
+  observer = new MutationObserver ->
+    fixBackgroundColors editor
+  config =
+    attributes: false
+    childList: true
+    characterData: false
+    subtree: false
+  observer.observe container, config
+
 fixBackgroundColors = (editor) ->
   # By default each chunk of lines has a background
   # color which seems unneeded.
-
   view = atom.views.getView(editor).shadowRoot
   divs = view.querySelectorAll '.lines > div > div'
   for d in divs
