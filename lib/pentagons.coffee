@@ -13,6 +13,10 @@ module.exports =
     pentagonColor:
       type: 'string'
       default: 'rgba(255, 255, 255, 0.1)'
+    numberOfSides:
+      type: 'integer'
+      default: 5
+      minimum: 3
   deactivate: ->
     clearInterval intervalID
     for c, i in canvases
@@ -96,6 +100,7 @@ drawPentagons = (canvas, state) ->
     yOff = -(width - height) / 2
 
   ctx.fillStyle = atom.config.get 'pentagons.pentagonColor'
+  sideCount = atom.config.get 'pentagons.numberOfSides'
   Pentagon.allPentagons = state
   for pentagon in state
     frame = pentagon.frame()
@@ -105,9 +110,9 @@ drawPentagons = (canvas, state) ->
 
     # TODO: figure out non-flickery way to use frame.opacity.
     ctx.beginPath()
-    for j in [0..4]
-      x = Math.cos(frame.rotation+j*Math.PI*2/5)*radius + centerX
-      y = Math.sin(frame.rotation+j*Math.PI*2/5)*radius + centerY
+    for j in [0..sideCount-1]
+      x = Math.cos(frame.rotation+j*Math.PI*2/sideCount)*radius + centerX
+      y = Math.sin(frame.rotation+j*Math.PI*2/sideCount)*radius + centerY
       if j is 0
         ctx.moveTo x, y
       else
