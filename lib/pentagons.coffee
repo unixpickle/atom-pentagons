@@ -23,6 +23,7 @@ module.exports =
       minimum: 1
   deactivate: ->
     clearInterval intervalID
+    intervalID = null
     for c, i in canvases
       if c?
         c.parentElement.removeChild c
@@ -37,6 +38,8 @@ initializeModule = ->
     while i < states.length
       states[i] = randomPentagonState()
       i++
+  window.addEventListener 'resize', ->
+    redraw() if intervalID?
 
 registerEditor = (editor) ->
   editor.onDidDestroy ->
