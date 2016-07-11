@@ -12,11 +12,15 @@ module.exports =
   config:
     pentagonColor:
       type: 'string'
-      default: 'rgba(255, 255, 255, 0.1)'
+      default: 'rgba(255, 255, 255, 0.02)'
     numberOfSides:
       type: 'integer'
       default: 5
       minimum: 3
+    numberOfPentagons:
+      type: 'integer'
+      default: 18
+      minimum: 1
   deactivate: ->
     clearInterval intervalID
     for c, i in canvases
@@ -28,6 +32,11 @@ module.exports =
 
 initializeModule = ->
   atom.workspace.observeTextEditors registerEditor
+  atom.config.observe 'pentagons.numberOfPentagons', ->
+    i = 0
+    while i < states.length
+      states[i] = randomPentagonState()
+      i++
 
 registerEditor = (editor) ->
   editor.onDidDestroy ->
@@ -122,7 +131,8 @@ drawPentagons = (canvas, state) ->
 
 randomPentagonState = ->
   Pentagon.allPentagons = []
-  generatePentagons()
+  count = atom.config.get 'pentagons.numberOfPentagons'
+  generatePentagons(count)
   res = Pentagon.allPentagons
   return res
 
