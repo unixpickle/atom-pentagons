@@ -75,6 +75,7 @@ drawPentagons = (canvas, state) ->
     yOff = -(width - height) / 2
 
   ctx.fillStyle = atom.config.get 'pentagons.pentagonColor'
+  Pentagon.allPentagons = state
   for pentagon in state
     frame = pentagon.frame()
     centerX = frame.x*size + xOff
