@@ -1,20 +1,29 @@
 {Pentagon, generatePentagons} = require './pentagon_api'
 
-module.exports =
-  config:
-    pentagonColor:
-      type: 'string'
-      default: 'rgba(255, 255, 255, 0.1)'
-
 REDRAW_INTERVAL = 1000/24
+
+intervalID = null
 
 editors = []
 states = []
 canvases = []
 
+module.exports =
+  config:
+    pentagonColor:
+      type: 'string'
+      default: 'rgba(255, 255, 255, 0.1)'
+  deactivate: ->
+    clearInterval intervalID
+    for c, i in canvases
+      if c?
+        c.parentElement.removeChild c
+        canvases[i] = null
+  activate: ->
+    intervalID = setInterval redraw, REDRAW_INTERVAL
+
 initializeModule = ->
   atom.workspace.observeTextEditors registerEditor
-  setInterval redraw, REDRAW_INTERVAL
 
 registerEditor = (editor) ->
   editor.onDidDestroy ->
@@ -32,6 +41,7 @@ redraw = ->
   for editor, i in editors
     view = atom.views.getView editor
     unless view.style.display is 'none'
+      fixBackgroundColors editor
       unless canvases[i]?
         c = document.createElement 'canvas'
         canvases[i] = c
@@ -106,9 +116,9 @@ drawPentagons = (canvas, state) ->
     ctx.fill()
 
 randomPentagonState = ->
+  Pentagon.allPentagons = []
   generatePentagons()
   res = Pentagon.allPentagons
-  Pentagon.allPentagons = []
   return res
 
 initializeModule()
