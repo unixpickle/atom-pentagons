@@ -6,4 +6,4 @@ This brings [pentagons](https://github.com/unixpickle/pentagons) to the Atom tex
 
 It's hard to describe this plugin in words. Here's a picture, instead:
 
-![Pentagon Screenshot](screenshot.png)
+![Pentagon Screenshot](https://raw.githubusercontent.com/unixpickle/atom-pentagons/master/screenshot.png)
