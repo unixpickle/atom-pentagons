@@ -12,7 +12,9 @@ module.exports =
   config:
     pentagonColor:
       type: 'string'
-      default: 'rgba(255, 255, 255, 0.02)'
+      default: 'rgba(255,255,255,0.02)'
+      description: 'Allowed color(s) for a polygon. ' +
+        'Optionally a list, separated by semicolons (e.g. "#fff;#123").'
     numberOfSides:
       type: 'integer'
       default: 5
@@ -33,11 +35,8 @@ module.exports =
 
 initializeModule = ->
   atom.workspace.observeTextEditors registerEditor
-  atom.config.observe 'pentagons.numberOfPentagons', ->
-    i = 0
-    while i < states.length
-      states[i] = randomPentagonState()
-      i++
+  atom.config.observe 'pentagons.numberOfPentagons', recreatePentagonStates
+  atom.config.observe 'pentagons.pentagonColor', recreatePentagonStates
   window.addEventListener 'resize', ->
     redraw() if intervalID?
 
@@ -111,7 +110,6 @@ drawPentagons = (canvas, state) ->
   else
     yOff = -(width - height) / 2
 
-  ctx.fillStyle = atom.config.get 'pentagons.pentagonColor'
   sideCount = atom.config.get 'pentagons.numberOfSides'
   Pentagon.allPentagons = state
   for pentagon in state
@@ -121,6 +119,7 @@ drawPentagons = (canvas, state) ->
     radius = size * frame.radius
 
     # TODO: figure out non-flickery way to use frame.opacity.
+    ctx.fillStyle = pentagon.color
     ctx.beginPath()
     for j in [0..sideCount-1]
       x = Math.cos(frame.rotation+j*Math.PI*2/sideCount)*radius + centerX
@@ -132,11 +131,25 @@ drawPentagons = (canvas, state) ->
     ctx.closePath()
     ctx.fill()
 
+recreatePentagonStates = ->
+  i = 0
+  while i < states.length
+    states[i] = randomPentagonState()
+    i++
+
 randomPentagonState = ->
   Pentagon.allPentagons = []
   count = atom.config.get 'pentagons.numberOfPentagons'
   generatePentagons(count)
   res = Pentagon.allPentagons
+  for pentagon in res
+    pentagon.color = randomPentagonColor()
   return res
+
+randomPentagonColor = ->
+  colors = atom.config.get('pentagons.pentagonColor').split ';'
+  colors = for color in colors
+    color.trim()
+  return colors[Math.floor(Math.random() * colors.length)]
 
 initializeModule()
