@@ -15,14 +15,40 @@ module.exports =
       default: 'rgba(255,255,255,0.02)'
       description: 'Allowed color(s) for a polygon. ' +
         'Optionally a list, separated by semicolons (e.g. "#fff;#123").'
-    numberOfSides:
-      type: 'integer'
-      default: 5
-      minimum: 3
+      order: 1
     numberOfPentagons:
       type: 'integer'
       default: 18
       minimum: 1
+      order: 2
+    showTriangles:
+      type: 'boolean'
+      default: false
+      order: 3
+    showSquares:
+      type: 'boolean'
+      default: false
+      order: 4
+    showPentagons:
+      type: 'boolean'
+      default: true
+      order: 5
+    showHexagons:
+      type: 'boolean'
+      default: false
+      order: 6
+    showHeptagons:
+      type: 'boolean'
+      default: false
+      order: 7
+    showOctogons:
+      type: 'boolean'
+      default: false
+      order: 8
+    showCircles:
+      type: 'boolean'
+      default: false
+      order: 9
   deactivate: ->
     clearInterval intervalID
     intervalID = null
@@ -35,8 +61,11 @@ module.exports =
 
 initializeModule = ->
   atom.workspace.observeTextEditors registerEditor
-  atom.config.observe 'pentagons.numberOfPentagons', recreatePentagonStates
-  atom.config.observe 'pentagons.pentagonColor', recreatePentagonStates
+  prefs = ['pentagonColor', 'numberOfPentagons', 'showTriangles', 'showSquares',
+    'showPentagons', 'showHexagons', 'showHeptagons', 'showOctogons',
+    'showCircles']
+  for pref in prefs
+    atom.config.observe 'pentagons.'+pref, recreatePentagonStates
   window.addEventListener 'resize', ->
     redraw() if intervalID?
 
@@ -110,7 +139,6 @@ drawPentagons = (canvas, state) ->
   else
     yOff = -(width - height) / 2
 
-  sideCount = atom.config.get 'pentagons.numberOfSides'
   Pentagon.allPentagons = state
   for pentagon in state
     frame = pentagon.frame()
@@ -121,14 +149,18 @@ drawPentagons = (canvas, state) ->
     # TODO: figure out non-flickery way to use frame.opacity.
     ctx.fillStyle = pentagon.color
     ctx.beginPath()
-    for j in [0..sideCount-1]
-      x = Math.cos(frame.rotation+j*Math.PI*2/sideCount)*radius + centerX
-      y = Math.sin(frame.rotation+j*Math.PI*2/sideCount)*radius + centerY
-      if j is 0
-        ctx.moveTo x, y
-      else
-        ctx.lineTo x, y
-    ctx.closePath()
+    unless pentagon.sideCount is Infinity
+      count = pentagon.sideCount
+      for j in [0..count-1]
+        x = Math.cos(frame.rotation+j*Math.PI*2/count)*radius + centerX
+        y = Math.sin(frame.rotation+j*Math.PI*2/count)*radius + centerY
+        if j is 0
+          ctx.moveTo x, y
+        else
+          ctx.lineTo x, y
+      ctx.closePath()
+    else
+      ctx.arc centerX, centerY, radius, 0, Math.PI*2, false
     ctx.fill()
 
 recreatePentagonStates = ->
@@ -144,6 +176,7 @@ randomPentagonState = ->
   res = Pentagon.allPentagons
   for pentagon in res
     pentagon.color = randomPentagonColor()
+    pentagon.sideCount = randomPentagonSideCount()
   return res
 
 randomPentagonColor = ->
@@ -151,5 +184,17 @@ randomPentagonColor = ->
   colors = for color in colors
     color.trim()
   return colors[Math.floor(Math.random() * colors.length)]
+
+randomPentagonSideCount = ->
+  attributes = ['showTriangles', 'showSquares', 'showPentagons',
+    'showHexagons', 'showHeptagons', 'showOctogons', 'showCircles']
+  sideCounts = [3, 4, 5, 6, 7, 8, Infinity]
+  useCounts = []
+  for attr, i in attributes
+    if atom.config.get('pentagons.'+attr)
+      useCounts.push sideCounts[i]
+  if useCounts.length is 0
+    return 5
+  return useCounts[Math.floor(Math.random() * useCounts.length)]
 
 initializeModule()
