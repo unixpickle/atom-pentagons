@@ -1,12 +1,98 @@
 {Pentagon, generatePentagons} = require './pentagon_api'
+{CompositeDisposable} = require 'atom'
 
 REDRAW_INTERVAL = 1000/24
 
-intervalID = null
+class Pentagons
+  constructor: ->
+    @disposable = new CompositeDisposable
+    @mutationObservers = []
+    @editors = []
+    @states = []
+    @canvases = []
+    @intervalID = setInterval (=> @redraw()), REDRAW_INTERVAL
+    @resizeHandler = (=> @redraw())
+    window.addEventListener 'resize', @resizeHandler
+    @registerObservers()
 
-editors = []
-states = []
-canvases = []
+  dispose: ->
+    @disposable.dispose()
+    for mo in @mutationObservers
+      mo.disconnect()
+    clearInterval @intervalID
+    for c in @canvases
+      if c?
+        c.parentElement.removeChild c
+    window.removeEventListener 'resize', @resizeHandler
+
+  redraw: ->
+    for editor, i in @editors
+      view = atom.views.getView editor
+      unless view.style.display is 'none'
+        fixBackgroundColors editor
+        unless @canvases[i]?
+          c = document.createElement 'canvas'
+          @canvases[i] = c
+          c.style.position = 'absolute'
+          c.style.width = '100%'
+          c.style.height = '100%'
+          root = view.shadowRoot
+          lines = root.querySelector '.lines'
+          lines.insertBefore c, lines.firstChild
+        canvas = @canvases[i]
+        canvas.width = canvas.offsetWidth
+        canvas.height = canvas.offsetHeight
+        drawPentagons canvas, @states[i]
+      else
+        if @canvases[i]?
+          @canvases[i].parentElement.removeChild @canvases[i]
+          @canvases[i] = null
+
+  registerObservers: ->
+    o = atom.workspace.observeTextEditors (e) => @registerEditor e
+    @disposable.add o
+
+    prefs = ['pentagonColor', 'numberOfPentagons', 'showTriangles',
+      'showSquares', 'showPentagons', 'showHexagons',
+      'showHeptagons', 'showOctogons', 'showCircles']
+    for pref in prefs
+      o = atom.config.observe 'pentagons.'+pref, =>
+        @recreatePentagonStates()
+      @disposable.add o
+
+  registerEditor: (editor) ->
+    @disposable.add editor.onDidDestroy =>
+      idx = @editors.indexOf editor
+      if idx > 0
+        @editors.splice idx, 1
+        @states.splice idx, 1
+        @canvases.splice idx, 1
+    @editors.push editor
+    @states.push randomPentagonState()
+    @canvases.push null
+    @registerBackgroundFixer editor
+
+  registerBackgroundFixer: (editor) ->
+    fixBackgroundColors editor
+    view = atom.views.getView(editor).shadowRoot
+    container = view.querySelector '.lines > div'
+    observer = new MutationObserver ->
+      fixBackgroundColors editor
+    config =
+      attributes: false
+      childList: true
+      characterData: false
+      subtree: false
+    observer.observe container, config
+    @mutationObservers.push observer
+
+  recreatePentagonStates: ->
+    i = 0
+    while i < @states.length
+      @states[i] = randomPentagonState()
+      i++
+
+pentagonInstance = null
 
 module.exports =
   config:
@@ -50,72 +136,10 @@ module.exports =
       default: false
       order: 9
   deactivate: ->
-    clearInterval intervalID
-    intervalID = null
-    for c, i in canvases
-      if c?
-        c.parentElement.removeChild c
-        canvases[i] = null
+    pentagonInstance.dispose()
+    pentagonInstance = null
   activate: ->
-    intervalID = setInterval redraw, REDRAW_INTERVAL
-
-initializeModule = ->
-  atom.workspace.observeTextEditors registerEditor
-  prefs = ['pentagonColor', 'numberOfPentagons', 'showTriangles', 'showSquares',
-    'showPentagons', 'showHexagons', 'showHeptagons', 'showOctogons',
-    'showCircles']
-  for pref in prefs
-    atom.config.observe 'pentagons.'+pref, recreatePentagonStates
-  window.addEventListener 'resize', ->
-    redraw() if intervalID?
-
-registerEditor = (editor) ->
-  editor.onDidDestroy ->
-    idx = editors.indexOf editor
-    if idx > 0
-      editors.splice idx, 1
-      states.splice idx, 1
-      canvases.splice idx, 1
-  editors.push editor
-  states.push randomPentagonState()
-  canvases.push null
-  registerBackgroundFixer editor
-
-redraw = ->
-  for editor, i in editors
-    view = atom.views.getView editor
-    unless view.style.display is 'none'
-      fixBackgroundColors editor
-      unless canvases[i]?
-        c = document.createElement 'canvas'
-        canvases[i] = c
-        c.style.position = 'absolute'
-        c.style.width = '100%'
-        c.style.height = '100%'
-        root = view.shadowRoot
-        lines = root.querySelector '.lines'
-        lines.insertBefore c, lines.firstChild
-      canvas = canvases[i]
-      canvas.width = canvas.offsetWidth
-      canvas.height = canvas.offsetHeight
-      drawPentagons canvas, states[i]
-    else
-      if canvases[i]?
-        canvases[i].parentElement.removeChild canvases[i]
-        canvases[i] = null
-
-registerBackgroundFixer = (editor) ->
-  fixBackgroundColors editor
-  view = atom.views.getView(editor).shadowRoot
-  container = view.querySelector '.lines > div'
-  observer = new MutationObserver ->
-    fixBackgroundColors editor
-  config =
-    attributes: false
-    childList: true
-    characterData: false
-    subtree: false
-  observer.observe container, config
+    pentagonInstance = new Pentagons
 
 fixBackgroundColors = (editor) ->
   # By default each chunk of lines has a background
@@ -163,12 +187,6 @@ drawPentagons = (canvas, state) ->
       ctx.arc centerX, centerY, radius, 0, Math.PI*2, false
     ctx.fill()
 
-recreatePentagonStates = ->
-  i = 0
-  while i < states.length
-    states[i] = randomPentagonState()
-    i++
-
 randomPentagonState = ->
   Pentagon.allPentagons = []
   count = atom.config.get 'pentagons.numberOfPentagons'
@@ -196,5 +214,3 @@ randomPentagonSideCount = ->
   if useCounts.length is 0
     return 5
   return useCounts[Math.floor(Math.random() * useCounts.length)]
-
-initializeModule()
