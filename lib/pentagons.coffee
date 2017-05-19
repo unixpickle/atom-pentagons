@@ -36,8 +36,7 @@ class Pentagons
           c.style.position = 'absolute'
           c.style.width = '100%'
           c.style.height = '100%'
-          root = view.shadowRoot
-          lines = root.querySelector '.lines'
+          lines = view.querySelector '.lines'
           lines.insertBefore c, lines.firstChild
         canvas = @canvases[i]
         canvas.width = canvas.offsetWidth
@@ -74,7 +73,7 @@ class Pentagons
 
   registerBackgroundFixer: (editor) ->
     fixBackgroundColors editor
-    view = atom.views.getView(editor).shadowRoot
+    view = atom.views.getView(editor)
     container = view.querySelector '.lines > div'
     observer = new MutationObserver ->
       fixBackgroundColors editor
@@ -144,7 +143,7 @@ module.exports =
 fixBackgroundColors = (editor) ->
   # By default each chunk of lines has a background
   # color which seems unneeded.
-  view = atom.views.getView(editor).shadowRoot
+  view = atom.views.getView(editor)
   divs = view.querySelectorAll '.lines > div > div'
   for d in divs
     d.style.backgroundColor = ''
