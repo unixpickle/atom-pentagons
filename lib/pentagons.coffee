@@ -34,10 +34,12 @@ class Pentagons
           c = document.createElement 'canvas'
           @canvases[i] = c
           c.style.position = 'absolute'
+          c.style.left = '0'
+          c.style.top = '0'
           c.style.width = '100%'
           c.style.height = '100%'
-          lines = view.querySelector '.lines'
-          lines.insertBefore c, lines.firstChild
+          container = view.querySelector '.scroll-view'
+          container.insertBefore c, container.firstChild
         canvas = @canvases[i]
         canvas.width = canvas.offsetWidth
         canvas.height = canvas.offsetHeight
@@ -144,7 +146,7 @@ fixBackgroundColors = (editor) ->
   # By default each chunk of lines has a background
   # color which seems unneeded.
   view = atom.views.getView(editor)
-  divs = view.querySelectorAll '.lines > div > div'
+  divs = view.querySelectorAll '.scroll-view > div'
   for d in divs
     d.style.backgroundColor = ''
 
