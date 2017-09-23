@@ -1,6 +1,6 @@
 {
   "name": "pentagons",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "main": "./lib/pentagons",
   "description": "See moving pentagons in the background of your code.",
   "engines": {
